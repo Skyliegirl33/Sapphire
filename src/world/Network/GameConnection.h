@@ -213,6 +213,10 @@ namespace Sapphire::Network
 
     DECLARE_HANDLER( reqMoveHousingItem );
 
+    DECLARE_HANDLER( reqRemodelEstateExerior );
+
+    DECLARE_HANDLER( reqRemodelEstateInterior );
+
     DECLARE_HANDLER( catalogSearch );
 
     DECLARE_HANDLER( gearSetEquip );

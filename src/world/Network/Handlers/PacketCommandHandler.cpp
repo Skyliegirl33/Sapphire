@@ -546,7 +546,7 @@ void Sapphire::Network::GameConnection::commandHandler( const Packets::FFXIVARR_
       break;
     }
     case PacketCommand::EMOTE_MODE_CANCEL:
-    { 
+    {
       if( player.getPersistentEmote() > 0 )
       {
         player.setPersistentEmote( 0 );
@@ -748,7 +748,19 @@ void Sapphire::Network::GameConnection::commandHandler( const Packets::FFXIVARR_
       uint8_t ward = ( data.Arg1 >> 16 ) & 0xFF;
       uint8_t plot = ( data.Arg1 & 0xFF );
       Network::Util::Packet::sendActorControl( player, player.getId(), ShowHousingItemUI, 0, plot );
-      //TODO: show item housing container
+
+      auto& housingMgr = Service< HousingMgr >::ref();
+
+      if( data.Arg1 == 0 )
+      {
+        // param1 = 1 - storeroom
+        // param1 = 0 - placed items
+
+        if( data.Arg0 == 1 )
+          housingMgr.sendInternalEstateInventoryBatch( player, true );
+        else
+          housingMgr.sendInternalEstateInventoryBatch( player );
+      }
 
       break;
     }
@@ -768,7 +780,50 @@ void Sapphire::Network::GameConnection::commandHandler( const Packets::FFXIVARR_
 
       break;
     }
+    case PacketCommand::HOUSING_LOAD_ROOM:
+    {
+      uint8_t plot = ( param12 & 0xFF );
 
+      auto& housingMgr = Service< HousingMgr >::ref();
+
+      uint16_t inventoryType = InventoryType::HousingExteriorPlacedItems;
+      if( param2 == 1 )
+        inventoryType = InventoryType::HousingExteriorStoreroom;
+
+      housingMgr.sendEstateInventory( player, inventoryType, plot );
+
+      break;
+    }
+    case PacketCommand::HOUSING_BREAK:
+    {
+      uint8_t plot = ( param12 & 0xFF );
+
+      auto& housingMgr = Service< HousingMgr >::ref();
+
+      housingMgr.reqEstateExteriorRemodel( player, plot );
+
+      break;
+    }
+    case PacketCommand::HOUSING_LOAD_PARTS:
+    {
+      auto& housingMgr = Service< HousingMgr >::ref();
+
+      housingMgr.reqEstateInteriorRemodel( player );
+
+      break;
+    }
+    case PacketCommand::HOUSING_LOAD_YARD:
+    {
+      auto& housingMgr = Service< HousingMgr >::ref();
+
+      auto slot = param4 & 0xFF;
+      auto sendToStoreroom = ( param4 >> 16 ) != 0;
+
+      //player, plot, containerId, slot, sendToStoreroom
+      housingMgr.reqRemoveHousingItem( player, static_cast< uint16_t >( param12 ), static_cast< uint16_t >( param2 ), static_cast< uint8_t >( slot ), sendToStoreroom );
+
+      break;
+    }
 /*    case PacketCommand::RequestLandInventory:
     {
       uint8_t plot = ( data.Arg1 & 0xFF );

@@ -170,6 +170,7 @@ void Sapphire::HousingZone::onPlayerZoneIn( Entity::Player& player )
   {
     auto housingObjectInit = makeZonePacket< FFXIVIpcYardObjectList >( player.getId() );
     housingObjectInit->data().PacketIndex = yardPacketNum;
+    housingObjectInit->data().PacketEnd = yardPacketTotal;
     auto& objects = m_yardObjects;
 
     memcpy( &housingObjectInit->data().YardObjects, &objects[ yardPacketNum * 400 ], yardObjectSize * 400 );

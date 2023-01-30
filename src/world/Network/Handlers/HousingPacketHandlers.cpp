@@ -112,12 +112,44 @@ void Sapphire::Network::GameConnection::reqPlaceHousingItem( const Packets::FFXI
 void Sapphire::Network::GameConnection::reqMoveHousingItem( const Packets::FFXIVARR_PACKET_RAW& inPacket,
                                                             Entity::Player& player )
 {
-  /*
   auto& housingMgr = Common::Service< HousingMgr >::ref();
 
-  const auto packet = ZoneChannelPacket< Client::FFXIVIpcHousingUpdateObjectPosition >( inPacket );
+  const auto packet = ZoneChannelPacket< Client::FFXIVIpcHousingChangeLayout >( inPacket );
   const auto& data = packet.data();
 
-  housingMgr.reqMoveHousingItem( player, data.ident, data.slot, data.pos, data.rotation );
-  */
+  Logger::debug(
+    "Dump:\n{0}",
+    Util::binaryToHexDump( const_cast< uint8_t* >( &inPacket.data[ 0 ] ),
+                            static_cast< uint16_t >( inPacket.segHdr.size - 0x10 ) )
+  );
+
+  housingMgr.reqMoveHousingItem( player, data.landId, data.storageIndex, Common::FFXIVARR_POSITION3{ data.posX, data.posY, data.posZ }, data.rotY );
+}
+
+void Sapphire::Network::GameConnection::reqRemodelEstateExerior( const Packets::FFXIVARR_PACKET_RAW& inPacket,
+                                                            Entity::Player& player )
+{
+  auto& housingMgr = Common::Service< HousingMgr >::ref();
+
+  const auto packet = ZoneChannelPacket< Client::FFXIVIpcHousingExteriorChange >( inPacket );
+  const auto& data = packet.data();
+
+  housingMgr.reqRemodelEstateExerior( player, data.landIdOrIndex, data.StorageId, data.ContainerIndex );
+}
+
+void Sapphire::Network::GameConnection::reqRemodelEstateInterior( const Packets::FFXIVARR_PACKET_RAW& inPacket,
+                                                            Entity::Player& player )
+{
+  auto& housingMgr = Common::Service< HousingMgr >::ref();
+
+  const auto packet = ZoneChannelPacket< Client::FFXIVIpcHousingInteriorChange >( inPacket );
+  const auto& data = packet.data();
+
+  Logger::debug(
+    "Dump:\n{0}",
+    Util::binaryToHexDump( const_cast< uint8_t* >( &inPacket.data[ 0 ] ),
+                            static_cast< uint16_t >( inPacket.segHdr.size - 0x10 ) )
+  );
+
+  housingMgr.reqRemodelEstateInterior( player, data.landIdOrIndex, data.StorageId, data.ContainerIndex );
 }

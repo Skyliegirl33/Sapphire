@@ -178,6 +178,10 @@ namespace Sapphire::World::Manager
 
     void reqEstateInteriorRemodel( Entity::Player& player );
 
+    void reqRemodelEstateExerior( Entity::Player& player, Common::LandIdent landIdOrIndex, const uint16_t StorageId[9], const int16_t ContainerIndex[9] );
+
+    void reqRemodelEstateInterior( Entity::Player& player, Common::LandIdent landIdOrIndex, const uint16_t StorageId[10], const int16_t ContainerIndex[10] );
+
     bool hasPermission( Entity::Player& player, Land& land, uint32_t permission );
 
     void removeHouse( Entity::Player& player, uint16_t plot );

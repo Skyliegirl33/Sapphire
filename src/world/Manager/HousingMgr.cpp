@@ -1262,6 +1262,8 @@ void HousingMgr::reqMoveHousingItem( Entity::Player& player, Common::LandIdent i
   if( !land || !hasPermission( player, *land, 0 ) )
     return;
 
+  Logger::debug( "Ident: {}, slot: {}, posx: {} posy: {} posz: {}", ident.landId, slot, pos.x, pos.y, pos.z );
+
   auto pZone = teriMgr.getTerritoryByGuId( player.getTerritoryId() );
 
   // todo: what happens when either of these fail? how does the server let the client know that the moment failed
@@ -1272,7 +1274,7 @@ void HousingMgr::reqMoveHousingItem( Entity::Player& player, Common::LandIdent i
   }
   else if( auto terri = std::dynamic_pointer_cast< HousingZone >( pZone ) )
   {
-    moveExternalItem( player, ident, slot, *terri, pos, rot );
+    moveExternalItem( player, ident, slot - 0x88, *terri, pos, rot );
   }
 }
 
@@ -1619,6 +1621,119 @@ void HousingMgr::reqEstateInteriorRemodel( Entity::Player& player )
   invMgr.sendInventoryContainer( player, it->second );
 
   Network::Util::Packet::sendActorControlSelf( player, player.getId(), ActorControl::ShowEstateInternalAppearanceUI );
+}
+
+void HousingMgr::reqRemodelEstateExerior( Entity::Player& player, Common::LandIdent landIdOrIndex, 
+                                          const uint16_t StorageId[9], const int16_t ContainerIndex[9] )
+{
+  auto& server = Common::Service< World::WorldServer >::ref();
+  auto pSession = server.getSession( player.getCharacterId() );
+
+  auto& teriMgr = Common::Service< TerritoryMgr >::ref();
+  auto pZone = teriMgr.getTerritoryByGuId( player.getTerritoryId() );
+
+  auto terri = std::dynamic_pointer_cast< HousingZone >( pZone );
+  if( !terri )
+    return;
+
+  auto land = terri->getLand( static_cast< uint8_t >( landIdOrIndex.landId ) );
+  if( !land )
+    return;
+
+  if( !hasPermission( player, *land, 0 ) )
+    return;
+
+  auto& inv = getEstateInventory( land->getLandIdent() );
+  auto it = inv.find( Common::InventoryType::HousingExteriorAppearance );
+  if( it == inv.end() )
+    return;
+
+  auto& invMgr = Common::Service< InventoryMgr >::ref();
+  auto container = it->second;
+
+  for( auto idx = 0; idx < 9; idx++ )
+  {
+    auto containerId = StorageId[ idx ];
+    auto slotId = ContainerIndex[ idx ];
+
+    Inventory::HousingItemPtr item;
+
+    if( containerId == Common::InventoryType::Bag0 ||
+        containerId == Common::InventoryType::Bag1 ||
+        containerId == Common::InventoryType::Bag2 ||
+        containerId == Common::InventoryType::Bag3 )
+    {
+      item = getHousingItemFromPlayer( player, static_cast< Common::InventoryType >( containerId ), slotId );
+      if( !item )
+        return;
+
+      container->setItem( idx, item );
+      invMgr.saveItem( player, item );
+    }
+  }
+
+  invMgr.sendInventoryContainer( player, container );
+  invMgr.saveHousingContainer( land->getLandIdent(), container );
+  updateHouseModels( land->getHouse() );
+}
+
+void HousingMgr::reqRemodelEstateInterior( Entity::Player& player, Common::LandIdent landIdOrIndex, 
+                                          const uint16_t StorageId[10], const int16_t ContainerIndex[10] )
+{
+  auto& server = Common::Service< World::WorldServer >::ref();
+  auto pSession = server.getSession( player.getCharacterId() );
+  auto& teriMgr = Common::Service< TerritoryMgr >::ref();
+  auto pZone = teriMgr.getTerritoryByGuId( player.getTerritoryId() );
+
+  auto terri = std::dynamic_pointer_cast< Territory::Housing::HousingInteriorTerritory >( pZone );
+  if( !terri )
+    return;
+
+  auto ident = terri->getLandIdent();
+  auto landSetId = toLandSetId( ident.territoryTypeId, ident.wardNum );
+
+  auto pTeri = teriMgr.getTerritoryByGuId( landSetId );
+  auto hZone = std::dynamic_pointer_cast< HousingZone >( pTeri );
+
+  auto land = hZone->getLand( static_cast< uint8_t >( ident.landId ) );
+  if( !land )
+    return;
+
+  if( !hasPermission( player, *land, 0 ) )
+    return;
+
+  auto& inv = getEstateInventory( land->getLandIdent() );
+  auto it = inv.find( Common::InventoryType::HousingInteriorAppearance );
+  if( it == inv.end() )
+    return;
+
+  auto& invMgr = Common::Service< InventoryMgr >::ref();
+  auto container = it->second;
+
+  for( auto idx = 0; idx < 10; idx++ )
+  {
+    auto containerId = StorageId[ idx ];
+    auto slotId = ContainerIndex[ idx ];
+
+    Inventory::HousingItemPtr item;
+
+    if( containerId == Common::InventoryType::Bag0 ||
+        containerId == Common::InventoryType::Bag1 ||
+        containerId == Common::InventoryType::Bag2 ||
+        containerId == Common::InventoryType::Bag3 )
+    {
+      item = getHousingItemFromPlayer( player, static_cast< Common::InventoryType >( containerId ), slotId );
+      if( !item )
+        return;
+
+      container->setItem( idx, item );
+      invMgr.saveItem( player, item );
+    }
+  }
+
+  invMgr.sendInventoryContainer( player, container );
+  invMgr.saveHousingContainer( ident, container );
+  updateHouseModels( land->getHouse() );
 }
 
 bool HousingMgr::hasPermission( Entity::Player& player, Sapphire::Land& land, uint32_t permission )
