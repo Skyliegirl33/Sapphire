@@ -260,7 +260,7 @@ bool Sapphire::Scripting::ScriptMgr::onTalk( Entity::Player& player, uint64_t ac
 }
 
 bool Sapphire::Scripting::ScriptMgr::onYield( Entity::Player& player, uint32_t eventId, uint16_t sceneId, uint8_t resumeId,
-                                              const std::string& resultString, uint64_t resultInt )
+                                              const std::string& resultString, uint64_t resultInt, std::vector< uint32_t > results )
 {
   auto eventType = static_cast< uint16_t >( eventId >> 16 );
   auto& exdData = Common::Service< Data::ExdData >::ref();
@@ -274,7 +274,7 @@ bool Sapphire::Scripting::ScriptMgr::onYield( Entity::Player& player, uint32_t e
   auto script = m_nativeScriptMgr->getScript< Sapphire::ScriptAPI::EventScript >( eventId );
   if( script )
   {
-    script->onYield( eventId, sceneId, resumeId, player, resultString, resultInt );
+    script->onYield( eventId, sceneId, resumeId, player, resultString, resultInt, results );
     return true;
   }
   else
@@ -283,7 +283,7 @@ bool Sapphire::Scripting::ScriptMgr::onYield( Entity::Player& player, uint32_t e
     if( !script )
       return false;
 
-    script->onYield( eventId, sceneId, resumeId, player, resultString, resultInt );
+    script->onYield( eventId, sceneId, resumeId, player, resultString, resultInt, results );
     return true;
   }
 }

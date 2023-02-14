@@ -47,7 +47,7 @@ class ComDefFreeCompany : public Sapphire::ScriptAPI::EventScript
     Scene00000( player );
   }
 
-  void onYield( uint32_t eventId, uint16_t sceneId, uint8_t yieldId, Entity::Player& player, const std::string& resultString, uint64_t resultInt ) override
+  void onYield( uint32_t eventId, uint16_t sceneId, uint8_t yieldId, Entity::Player& player, const std::string& resultString, uint64_t resultInt, const std::vector< uint32_t >& results ) override
   {
     if( sceneId == 0 )
       eventMgr().resumeScene( player, eventId, sceneId, yieldId, { 0, 0, 0,  0, 0, 0, 0, 1, 1, 1 } );

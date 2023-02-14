@@ -343,7 +343,7 @@ void EventMgr::handleYieldEventScene( Entity::Player& player, uint32_t eventId, 
   }
 
   std::string tmp{};
-  if( !scriptMgr.onYield( player, eventId, sceneId, resumeId, tmp, 0 ) )
+  if( !scriptMgr.onYield( player, eventId, sceneId, resumeId, tmp, 0, results ) )
   {
     PlayerMgr::sendDebug( player, "Yield not implemented in script, sending default" );
   }

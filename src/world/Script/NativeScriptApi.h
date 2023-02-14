@@ -186,7 +186,7 @@ namespace Sapphire::ScriptAPI
 
     virtual void onEObjHit( Sapphire::Entity::Player& player, uint64_t actorId, uint32_t actionId );
 
-    virtual void onYield( uint32_t eventId, uint16_t sceneId, uint8_t yieldId, Entity::Player& player, const std::string& resultString, uint64_t returnInt );
+    virtual void onYield( uint32_t eventId, uint16_t sceneId, uint8_t yieldId, Entity::Player& player, const std::string& resultString, uint64_t returnInt, const std::vector< uint32_t >& results );
 
     Data::ExdData& exdData()
     {
