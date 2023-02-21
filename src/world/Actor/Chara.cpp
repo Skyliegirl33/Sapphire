@@ -807,4 +807,9 @@ void Chara::onTick()
     Network::Util::Packet::sendActorControl( getInRangePlayerIds( isPlayer() ), getId(), HPFloatingText, 0,
                                              ActionEffectType::CALC_RESULT_TYPE_RECOVER_HP, thisTickHeal );
   }
+
+  if( isPlayer() )
+    server().queueForPlayers( getInRangePlayerIds( isPlayer() ), makeHudParam( *getAsPlayer() ) );
+  else if( isBattleNpc() )
+    server().queueForPlayers( getInRangePlayerIds( isPlayer() ), makeHudParam( *getAsBNpc() ) );
 }
