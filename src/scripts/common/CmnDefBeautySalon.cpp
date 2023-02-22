@@ -42,8 +42,6 @@ class CmnDefBeautySalon : public Sapphire::ScriptAPI::EventScript
       Token = 2
     };
 
-    bool result = false;
-
   public:
     CmnDefBeautySalon() : Sapphire::ScriptAPI::EventScript( 721044 ){}; 
     ~CmnDefBeautySalon() = default; 
@@ -73,6 +71,7 @@ class CmnDefBeautySalon : public Sapphire::ScriptAPI::EventScript
         case 27:
         {
           auto payment = static_cast< Payment >( results.at( 0 ) );
+          bool result = false;
 
           switch( payment )
           {
@@ -108,8 +107,8 @@ class CmnDefBeautySalon : public Sapphire::ScriptAPI::EventScript
           }
 
           eventMgr().resumeScene( player, eventId, sceneId, yieldId, { result } ); // 0 when failed
-          }
           break;
+        }
       }
     }
   }
@@ -151,12 +150,15 @@ class CmnDefBeautySalon : public Sapphire::ScriptAPI::EventScript
 
   void Scene00002Return( Entity::Player& player, const Event::SceneResult& result )
   {
-    Scene00003( player );
+    if( result.getResult( 0 ) == 1 )
+      Scene00003( player, true );
+    else
+      Scene00003( player, false );
   }
 
   //////////////////////////////////////////////////////////////////////
 
-  void Scene00003( Entity::Player& player )
+  void Scene00003( Entity::Player& player, bool result )
   {
     eventMgr().playScene( player, getId(), 3, FADE_OUT | HIDE_UI, { result, result }, bindSceneReturn( &CmnDefBeautySalon::Scene00003Return ) );
   }
