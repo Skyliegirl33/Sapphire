@@ -421,31 +421,31 @@ bool MapMgr::isQuestVisible( Entity::Player& player, uint32_t questId, Excel::Qu
   }
   else if( quest.PrevQuestOperator == 2 )
   {
-    for( int32_t i = 0; i < 3; i++ )
+    for( int32_t i = 0; i <= 3; i++ )
     {
+      if( i == 3 )
+        return false;
+
       if( quest.PrevQuest[ i ] == 0 )
         continue;
 
       if( player.isQuestCompleted( quest.PrevQuest[ i ] ) )
         break;
-
-      if( i == 2 )
-        return false;
     }
   }
 
   if( quest.ExcludeQuestOperator == 1 )
   {
-    for( int32_t i = 0; i < 2; i++ )
+    for( int32_t i = 0; i <= 2; i++ )
     {
+      if( i == 2 )
+        return false;
+
       if( quest.ExcludeQuest[ i ] == 0 )
         continue;
 
       if( !player.isQuestCompleted( quest.ExcludeQuest[ i ] ) && !player.hasQuest( quest.ExcludeQuest[ i ] ) )
         break;
-
-      if( i == 1 )
-        return false;
     }
   }
   else if( quest.ExcludeQuestOperator == 2 )
