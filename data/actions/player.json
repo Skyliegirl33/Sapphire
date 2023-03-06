@@ -2394,7 +2394,18 @@
     "nextCombo": [],
     "statuses": {
       "caster": [],
-      "target": []
+      "target": [
+        {
+          "id": 179,
+          "duration": 18000,
+          "modifiers": [
+            {
+              "modifier": "TickDamage",
+              "value": 40
+            }
+          ]
+        }
+      ]
     }
   },
   "165": {

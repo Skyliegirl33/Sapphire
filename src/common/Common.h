@@ -531,6 +531,7 @@ namespace Sapphire::Common
     EmoteImperialSalute = 23,
     EmoteThrowSnowball = 24,
     TreasureHunt = 25,
+    Aesthetician = 26,
     EmoteStepDance = 27,
     EmoteHarvestDance = 28,
     EmoteBallDance = 29,
