@@ -1,4 +1,4 @@
-#include "EffectResult.h"
+#include "ActionResult.h"
 
 #include <Util/Util.h>
 
@@ -7,12 +7,13 @@
 
 #include "Actor/Chara.h"
 #include "Actor/Player.h"
+#include "StatusEffect/StatusEffect.h"
 
 using namespace Sapphire;
 using namespace Sapphire::World::Action;
 
 
-EffectResult::EffectResult( Entity::CharaPtr target, uint64_t runAfter ) :
+ActionResult::ActionResult( Entity::CharaPtr target, uint64_t runAfter ) :
   m_target( std::move( target ) ),
   m_delayMs( runAfter )
 {
@@ -20,21 +21,21 @@ EffectResult::EffectResult( Entity::CharaPtr target, uint64_t runAfter ) :
   m_result.Arg1 = 0;
   m_result.Arg2 = 0;
   m_result.Value = 0;
-  m_result.Flag = static_cast< uint8_t >( Common::ActionEffectResultFlag::None );
+  m_result.Flag = static_cast< uint8_t >( Common::ActionResultFlag::None );
   m_result.Type = Common::ActionEffectType::CALC_RESULT_TYPE_NONE;
 }
 
-Entity::CharaPtr EffectResult::getTarget() const
+Entity::CharaPtr ActionResult::getTarget() const
 {
   return m_target;
 }
 
-uint64_t EffectResult::getDelay()
+uint64_t ActionResult::getDelay()
 {
   return m_delayMs;
 }
 
-void EffectResult::damage( uint32_t amount, Common::ActionHitSeverityType severity, Common::ActionEffectResultFlag flag )
+void ActionResult::damage( uint32_t amount, Common::ActionHitSeverityType severity, Common::ActionResultFlag flag )
 {
   m_result.Arg0 = static_cast< uint8_t >( severity );
   m_result.Value = static_cast< int16_t >( amount );
@@ -42,7 +43,7 @@ void EffectResult::damage( uint32_t amount, Common::ActionHitSeverityType severi
   m_result.Type = Common::ActionEffectType::CALC_RESULT_TYPE_DAMAGE_HP;
 }
 
-void EffectResult::heal( uint32_t amount, Common::ActionHitSeverityType severity, Common::ActionEffectResultFlag flag )
+void ActionResult::heal( uint32_t amount, Common::ActionHitSeverityType severity, Common::ActionResultFlag flag )
 {
   m_result.Arg1 = static_cast< uint8_t >( severity );
   m_result.Value = static_cast< int16_t >( amount );
@@ -50,47 +51,59 @@ void EffectResult::heal( uint32_t amount, Common::ActionHitSeverityType severity
   m_result.Type = Common::ActionEffectType::CALC_RESULT_TYPE_RECOVER_HP;
 }
 
-void EffectResult::restoreMP( uint32_t amount, Common::ActionEffectResultFlag flag )
+void ActionResult::restoreMP( uint32_t amount, Common::ActionResultFlag flag )
 {
   m_result.Value = static_cast< int16_t >( amount );
   m_result.Flag = static_cast< uint8_t >( flag );
   m_result.Type = Common::ActionEffectType::CALC_RESULT_TYPE_RECOVER_MP;
 }
 
-void EffectResult::startCombo( uint16_t actionId )
+void ActionResult::startCombo( uint16_t actionId )
 {
   m_result.Value = static_cast< int16_t >( actionId );
-  m_result.Flag = static_cast< uint8_t >( Common::ActionEffectResultFlag::EffectOnSource );
+  m_result.Flag = static_cast< uint8_t >( Common::ActionResultFlag::EffectOnSource );
   m_result.Type = Common::ActionEffectType::CALC_RESULT_TYPE_COMBO;
 }
 
-void EffectResult::comboSucceed()
+void ActionResult::comboSucceed()
 {
   // no EffectOnSource flag on this
   m_result.Type = Common::ActionEffectType::CALC_RESULT_TYPE_COMBO_HIT;
 }
 
-void EffectResult::applyStatusEffect( uint16_t statusId, uint8_t param )
+void ActionResult::applyStatusEffect( uint32_t id, int32_t duration, Entity::Chara& source, uint8_t param, bool shouldOverride )
 {
-  m_result.Value = static_cast< int16_t >( statusId );
+  m_result.Value = static_cast< int16_t >( id );
   m_result.Arg2 = param;
   m_result.Type = Common::ActionEffectType::CALC_RESULT_TYPE_SET_STATUS;
+
+  m_bOverrideStatus = shouldOverride;
+  m_pStatus = StatusEffect::make_StatusEffect( id, source.getAsChara(), m_target, duration, 3000 );
+  m_pStatus->setParam( param );
 }
 
-void EffectResult::mount( uint16_t mountId )
+void ActionResult::mount( uint16_t mountId )
 {
   m_result.Value = static_cast< int16_t >( mountId );
   m_result.Arg0 = 1;
   m_result.Type = Common::ActionEffectType::CALC_RESULT_TYPE_MOUNT;
 }
 
-const Common::CalcResultParam& EffectResult::getCalcResultParam() const
+const Common::CalcResultParam& ActionResult::getCalcResultParam() const
 {
   return m_result;
 }
 
-void EffectResult::execute()
+const StatusEffect::StatusEffectPtr ActionResult::getStatusEffect() const
 {
+  return m_pStatus;
+}
+
+void ActionResult::execute()
+{
+  if( !m_target )
+    return;
+
   switch( m_result.Type )
   {
     case Common::ActionEffectType::CALC_RESULT_TYPE_DAMAGE_HP:
@@ -108,6 +121,15 @@ void EffectResult::execute()
     case Common::ActionEffectType::CALC_RESULT_TYPE_RECOVER_MP:
     {
       m_target->restoreMP( m_result.Value );
+      break;
+    }
+
+    case Common::ActionEffectType::CALC_RESULT_TYPE_SET_STATUS:
+    {
+      if( !m_bOverrideStatus )
+        m_target->addStatusEffectByIdIfNotExist( m_pStatus->getId(), m_pStatus->getDuration(), *m_pStatus->getSrcActor(), m_pStatus->getParam() );
+      else
+        m_target->addStatusEffectById( m_pStatus->getId(), m_pStatus->getDuration(), *m_pStatus->getSrcActor(), m_pStatus->getParam() );
       break;
     }
 

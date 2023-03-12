@@ -285,6 +285,16 @@ void Chara::die()
   Network::Util::Packet::sendActorControl( getInRangePlayerIds( selfNeedsUpdate ), getId(), DeathAnimation );
 }
 
+uint64_t Chara::getLastAttack() const
+{
+  return m_lastAttack;
+}
+
+void Chara::setLastAttack( uint64_t tickCount )
+{
+  m_lastAttack = tickCount;
+}
+
 /*!
 Calculates and sets the rotation to look towards a specified
 position
@@ -426,18 +436,6 @@ void Chara::restoreMP( uint32_t amount )
     m_mp += amount;
 }
 
-/*!
-Send an HpMpTp update to players in range ( and potentially to self )
-TODO: poor naming, should be changed. Status is not HP. Also should be virtual
-so players can have their own version and we can abolish the param.
-
-\param true if the update should also be sent to the actor ( player ) himself
-*/
-void Chara::sendHudParam()
-{
-  Network::Util::Packet::sendHudParam( *this );
-}
-
 /*! \return ActionPtr of the currently registered action, or nullptr */
 Action::ActionPtr Chara::getCurrentAction() const
 {
@@ -500,37 +498,8 @@ void Chara::addStatusEffect( StatusEffect::StatusEffectPtr pEffect )
     return;
 
   pEffect->applyStatus();
+  pEffect->setSlot( nextSlot );
   m_statusEffectMap[ nextSlot ] = pEffect;
-
-  auto statusEffectAdd = makeZonePacket< FFXIVIpcActionIntegrity >( getId() );
-
-  statusEffectAdd->data().ResultId = pZone->getNextEffectResultId();
-  statusEffectAdd->data().Target = pEffect->getTargetActorId();
-  statusEffectAdd->data().Hp = getHp();
-  statusEffectAdd->data().Mp = static_cast< uint16_t >( getMp() );
-  statusEffectAdd->data().Tp = static_cast< uint16_t >( getTp() );
-  statusEffectAdd->data().HpMax = getMaxHp();
-  statusEffectAdd->data().MpMax = static_cast< uint16_t >( getMaxMp() );
-  statusEffectAdd->data().ClassJob = static_cast< uint8_t >( getClass() );
-  statusEffectAdd->data().StatusCount = 1;
-  statusEffectAdd->data().unknown_E0 = 0xE0;
-
-  // set all status sources to u32 invalid game obj
-  // todo: chara status effect map should be filled instead, since hudparam also uses invalid gameobj
-  for( int i = 0; i < 4; ++i )
-  {
-    statusEffectAdd->data().Status[ i ].Source = INVALID_GAME_OBJECT_ID;
-  }
-
-  auto& status = statusEffectAdd->data().Status[ 0 ];
-
-  status.Source = pEffect->getSrcActorId();
-  status.Time = static_cast< float >( pEffect->getDuration() ) / 1000;
-  status.Id = static_cast< uint16_t >( pEffect->getId() );
-  status.Slot = static_cast< uint8_t >( nextSlot );
-  status.SystemParam = static_cast< int16_t >( pEffect->getParam() );
-
-  server().queueForPlayers( getInRangePlayerIds( isPlayer() ), statusEffectAdd );
 }
 
 /*! \param StatusEffectPtr to be applied to the actor */

@@ -36,6 +36,7 @@
 #include <Manager/PlayerMgr.h>
 #include <Manager/TaskMgr.h>
 #include <Manager/MgrUtil.h>
+#include <Manager/ActionMgr.h>
 #include <Script/ScriptMgr.h>
 #include <Task/RemoveBNpcTask.h>
 #include <Task/FadeBNpcTask.h>
@@ -43,7 +44,12 @@
 #include <Task/ActionIntegrityTask.h>
 #include <Service.h>
 
+#include <Action/Action.h>
+#include <AI/GambitRule.h>
+#include <AI/GambitTargetCondition.h>
+
 using namespace Sapphire;
+using namespace Sapphire::World;
 using namespace Sapphire::Common;
 using namespace Sapphire::Entity;
 using namespace Sapphire::Network::Packets;
@@ -318,7 +324,7 @@ uint32_t BNpc::getBNpcNameId() const
 
 void BNpc::spawn( PlayerPtr pTarget )
 {
-  m_lastRoamTargetReached = Util::getTimeSeconds();
+  m_lastRoamTargetReached = Common::Util::getTimeSeconds();
 
   auto& server = Common::Service< World::WorldServer >::ref();
   server.queueForPlayer( pTarget->getCharacterId(), std::make_shared< NpcSpawnPacket >( *this, *pTarget ) );
@@ -327,7 +333,7 @@ void BNpc::spawn( PlayerPtr pTarget )
 void BNpc::despawn( PlayerPtr pTarget )
 {
   pTarget->freePlayerSpawnId( getId() );
-  Network::Util::Packet::sendActorControl( *pTarget, WarpStart, 4, getId(), 1 );
+  Network::Util::Packet::sendActorControlSelf( *pTarget, getId(), WarpStart, 4, getId(), 1 );
 }
 
 BNpcState BNpc::getState() const
@@ -354,7 +360,7 @@ bool BNpc::moveTo( const FFXIVARR_POSITION3& pos )
   }
 
   auto pos1 = pNaviProvider->getMovePos( *this );
-  auto distance = Util::distance( pos1, pos );
+  auto distance = Common::Util::distance( pos1, pos );
 
   if( distance < getNaviTargetReachedDistance() )
   {
@@ -392,7 +398,7 @@ bool BNpc::moveTo( const Chara& targetChara )
   }
 
   auto pos1 = pNaviProvider->getMovePos( *this );
-  auto distance = Util::distance( pos1, targetChara.getPos() );
+  auto distance = Common::Util::distance( pos1, targetChara.getPos() );
 
   if( distance <= ( getNaviTargetReachedDistance() + targetChara.getRadius() ) )
   {
@@ -583,7 +589,7 @@ void BNpc::aggro( const Sapphire::Entity::CharaPtr& pChara )
   auto& pRNGMgr = Common::Service< World::Manager::RNGMgr >::ref();
   auto variation = static_cast< uint32_t >( pRNGMgr.getRandGenerator< float >( 500, 1000 ).next() );
 
-  m_lastAttack = Util::getTimeMs() + variation;
+  m_lastAttack = Common::Util::getTimeMs() + variation;
 
   setStance( Stance::Active );
   m_state = BNpcState::Combat;
@@ -643,6 +649,9 @@ void BNpc::update( uint64_t tickCount )
   if( !pNaviProvider )
     return;
 
+  if( !checkAction() )
+    processGambits( tickCount );
+
   switch( m_state )
   {
     case BNpcState::Dead:
@@ -662,7 +671,7 @@ void BNpc::update( uint64_t tickCount )
 
         // retail doesn't seem to roam straight after retreating
         // todo: perhaps requires more investigation?
-        m_lastRoamTargetReached = Util::getTimeSeconds();
+        m_lastRoamTargetReached = Common::Util::getTimeSeconds();
 
         // resetHp
         setHp( getMaxHp() );
@@ -681,7 +690,7 @@ void BNpc::update( uint64_t tickCount )
 
       if( moveTo( m_roamPos ) )
       {
-        m_lastRoamTargetReached = Util::getTimeSeconds();
+        m_lastRoamTargetReached = Common::Util::getTimeSeconds();
         m_state = BNpcState::Idle;
       }
 
@@ -698,12 +707,12 @@ void BNpc::update( uint64_t tickCount )
       if( pNaviProvider->syncPosToChara( *this ) )
         sendPositionUpdate();
 
-      if( !hasFlag( Immobile ) && ( Util::getTimeSeconds() - m_lastRoamTargetReached > roamTick ) )
+      if( !hasFlag( Immobile ) && ( Common::Util::getTimeSeconds() - m_lastRoamTargetReached > roamTick ) )
       {
 
         if( !pNaviProvider )
         {
-          m_lastRoamTargetReached = Util::getTimeSeconds();
+          m_lastRoamTargetReached = Common::Util::getTimeSeconds();
           break;
         }
         if( m_pInfo->WanderingRange != 0 && getEnemyType() != 0 )
@@ -729,7 +738,7 @@ void BNpc::update( uint64_t tickCount )
 
       pNaviProvider->updateAgentParameters( *this );
 
-      auto distanceOrig = Util::distance( getPos().x, getPos().y, getPos().z, m_spawnPos.x, m_spawnPos.y,  m_spawnPos.z );
+      auto distanceOrig = Common::Util::distance( getPos(), m_spawnPos );
 
       if( pHatedActor && !pHatedActor->isAlive() )
       {
@@ -739,8 +748,7 @@ void BNpc::update( uint64_t tickCount )
 
       if( pHatedActor )
       {
-        auto distance = Util::distance( getPos().x, getPos().y, getPos().z,
-                                        pHatedActor->getPos().x, pHatedActor->getPos().y, pHatedActor->getPos().z );
+        auto distance = Common::Util::distance( getPos(), pHatedActor->getPos() );
 
         if( !hasFlag( NoDeaggro ) && ( ( distanceOrig > maxDistanceToOrigin ) || distance > 30.0f ) )
         {
@@ -803,7 +811,7 @@ void BNpc::restHp()
       m_hp = getMaxHp();
   }
 
-  sendHudParam();
+  Network::Util::Packet::sendHudParam( *this );
 }
 
 void BNpc::onActionHostile( CharaPtr pSource )
@@ -825,7 +833,7 @@ void BNpc::onDeath()
   setTargetId( INVALID_GAME_OBJECT_ID64 );
   m_currentStance = Stance::Passive;
   m_state = BNpcState::Dead;
-  m_timeOfDeath = Util::getTimeSeconds();
+  m_timeOfDeath = Common::Util::getTimeSeconds();
   setOwner( nullptr );
 
   taskMgr.queueTask( World::makeFadeBNpcTask( 10000, getAsBNpc() ) );
@@ -882,7 +890,7 @@ void BNpc::checkAggro()
         range = std::max< float >( 0.f, range - std::pow( 1.53f, static_cast< float >( levelDiff ) * 0.6f ) );
     }
 
-    auto distance = Util::distance( getPos(), pClosestChara->getPos() );
+    auto distance = Common::Util::distance( getPos(), pClosestChara->getPos() );
 
     if( distance < range )
     {
@@ -913,7 +921,7 @@ void BNpc::checkAggro()
         range = std::max< float >( 0.f, range - std::pow( 1.53f, static_cast< float >( levelDiff ) * 0.6f ) );
     }
 
-    auto distance = Util::distance( getPos(), pClosestChara->getPos() );
+    auto distance = Common::Util::distance( getPos(), pClosestChara->getPos() );
 
     if( distance < range )
     {
@@ -935,7 +943,7 @@ void BNpc::setOwner( const CharaPtr& m_pChara )
   server().queueForPlayers( getInRangePlayerIds(), setOwnerPacket );
 
   if( m_pChara && m_pChara->isPlayer() )
-    Network::Util::Packet::sendActorControl( *m_pChara->getAsPlayer(), SetHateLetter, 1, getId(), 0 );
+    Network::Util::Packet::sendActorControl( *m_pChara->getAsPlayer(), getId(), SetHateLetter, 1, getId(), 0 );
 
 }
 
@@ -963,8 +971,10 @@ void BNpc::autoAttack( CharaPtr pTarget )
 {
   auto& teriMgr = Common::Service< World::Manager::TerritoryMgr >::ref();
   auto pZone = teriMgr.getTerritoryByGuId( getTerritoryId() );
+  auto& actionMgr = Common::Service< World::Manager::ActionMgr >::ref();
+  auto& exdData = Common::Service< Data::ExdData >::ref();
 
-  uint64_t tick = Util::getTimeMs();
+  uint64_t tick = Common::Util::getTimeMs();
 
   // todo: this needs to use the auto attack delay for the equipped weapon
   if( ( tick - m_lastAttack ) > 2500 )
@@ -972,26 +982,7 @@ void BNpc::autoAttack( CharaPtr pTarget )
     pTarget->onActionHostile( getAsChara() );
     m_lastAttack = tick;
     srand( static_cast< uint32_t >( tick ) );
-
-    auto damage = Math::CalcStats::calcAutoAttackDamage( *this );
-    //damage.first = 1;
-
-    auto effectPacket = std::make_shared< EffectPacket1 >( getId(), pTarget->getId(), 7 );
-    effectPacket->setRotation( Util::floatToUInt16Rot( getRot() ) );
-    Common::CalcResultParam effectEntry{};
-    effectEntry.Value = static_cast< int16_t >( damage.first );
-    effectEntry.Type = ActionEffectType::CALC_RESULT_TYPE_DAMAGE_HP;
-    effectEntry.Arg0 = 3;
-    effectEntry.Arg1 = 7;
-    auto resultId = pZone->getNextEffectResultId();
-    effectPacket->setResultId( resultId );
-    effectPacket->addTargetEffect( effectEntry );
-    server().queueForPlayers( getInRangePlayerIds(), effectPacket );
-
-    pTarget->takeDamage( static_cast< uint16_t >( damage.first ) );
-
-    auto& taskMgr = Common::Service< World::Manager::TaskMgr >::ref();
-    taskMgr.queueTask( Sapphire::World::makeActionIntegrityTask( resultId, pTarget, 500 ) );
+    actionMgr.handleTargetedAction( *this, 7, exdData.getRow< Excel::Action >( 7 ), pTarget->getId(), 0 );
   }
 }
 
@@ -1060,6 +1051,39 @@ uint32_t BNpc::getLayoutId() const
 
 void BNpc::init()
 {
+  auto& exdData = Common::Service< Data::ExdData >::ref();
   m_maxHp = Math::CalcStats::calculateMaxHp( *getAsChara() );
   m_hp = m_maxHp;
+
+  //setup a test gambit
+  auto testGambitRule = std::make_shared< AI::GambitRule >( std::make_shared< AI::TopHateTargetCondition >(),
+                                                            Action::make_Action( getAsChara(), 88, 0, exdData.getRow< Excel::Action >( 88 ) ), 5000 );
+
+  auto testGambitRule1 = std::make_shared< AI::GambitRule >( std::make_shared< AI::HPSelfPctLessThan >( 50 ),
+                                                             Action::make_Action( getAsChara(), 120, 0, exdData.getRow< Excel::Action >( 120 ) ), 5000 );
+
+  m_gambits.push_back( testGambitRule );
+  m_gambits.push_back( testGambitRule1 );
+}
+
+void BNpc::processGambits( uint64_t tickCount )
+{
+  auto& exdData = Common::Service< Data::ExdData >::ref();
+  auto& actionMgr = Common::Service< World::Manager::ActionMgr >::ref();
+  for( auto& gambitRule : m_gambits )
+  {
+    if( !gambitRule->isEnabled() )
+      continue;
+
+    if( ( tickCount - gambitRule->getLastExecutionMs() ) > gambitRule->getCoolDown() )
+    {
+      if( !gambitRule->getGambitTargetCondition()->isConditionMet( *this ) )
+        continue;
+
+      gambitRule->setLastExecutionMs( tickCount );
+      actionMgr.handleTargetedAction( *this, gambitRule->getActionPtr()->getId(), exdData.getRow< Excel::Action >( gambitRule->getActionPtr()->getId() ),
+                                      gambitRule->getGambitTargetCondition()->getTarget()->getId(), 0 );
+    }
+
+  }
 }
