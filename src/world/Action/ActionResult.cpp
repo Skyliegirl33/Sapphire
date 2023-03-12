@@ -78,7 +78,7 @@ void ActionResult::applyStatusEffect( uint32_t id, int32_t duration, Entity::Cha
   m_result.Type = Common::ActionEffectType::CALC_RESULT_TYPE_SET_STATUS;
 
   m_bOverrideStatus = shouldOverride;
-  m_pStatus = StatusEffect::make_StatusEffect( id, source.getAsChara(), m_target, duration, 3000 );
+  m_pStatus = Sapphire::StatusEffect::make_StatusEffect( id, source.getAsChara(), m_target, duration, 3000 );
   m_pStatus->setParam( param );
 }
 
@@ -94,7 +94,7 @@ const Common::CalcResultParam& ActionResult::getCalcResultParam() const
   return m_result;
 }
 
-const StatusEffect::StatusEffectPtr ActionResult::getStatusEffect() const
+const Sapphire::StatusEffect::StatusEffectPtr ActionResult::getStatusEffect() const
 {
   return m_pStatus;
 }
