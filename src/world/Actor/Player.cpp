@@ -642,11 +642,6 @@ void Player::levelUp()
   m_mp = getMaxMp();
 
   setLevel( getLevel() + 1 );
-  Network::Util::Packet::sendActorControl( getInRangePlayerIds( true ), getId(), LevelUpEffect, static_cast< uint8_t >( getClass() ), getLevel(), getLevel() - 1 );
-
-  auto& achvMgr = Common::Service< World::Manager::AchievementMgr >::ref();
-  achvMgr.progressAchievementByType< Common::Achievement::Type::Classjob >( *this, static_cast< uint32_t >( getClass() ) );
-  Service< World::Manager::MapMgr >::ref().updateQuests( *this );
 }
 
 uint8_t Player::getLevel() const
@@ -733,6 +728,11 @@ void Player::setLevel( uint8_t level )
   Network::Util::Packet::sendBaseParams( *this );
   Network::Util::Packet::sendHudParam( *this );
   Network::Util::Packet::sendStatusUpdate( *this );
+  Network::Util::Packet::sendActorControl( getInRangePlayerIds( true ), getId(), LevelUpEffect, static_cast< uint8_t >( getClass() ), getLevel(), getLevel() - 1 );
+
+  auto& achvMgr = Common::Service< World::Manager::AchievementMgr >::ref();
+  achvMgr.progressAchievementByType< Common::Achievement::Type::Classjob >( *this, static_cast< uint32_t >( getClass() ) );
+  Service< World::Manager::MapMgr >::ref().updateQuests( *this );
 }
 
 void Player::setLevelForClass( uint8_t level, Common::ClassJob classjob )
@@ -1134,6 +1134,7 @@ const std::map< uint32_t, uint8_t >& Player::getActorIdToHateSlotMap()
 void Player::onMobAggro( const BNpc& bnpc )
 {
   hateListAdd( bnpc );
+  setCondition( PlayerCondition::InCombat );
   Network::Util::Packet::sendActorControl( *this, getId(), SetBattle, 1 );
 }
 
@@ -1141,7 +1142,10 @@ void Player::onMobDeaggro( const BNpc& bnpc )
 {
   hateListRemove( bnpc );
   if( m_actorIdTohateSlotMap.empty() )
+  {
+    removeCondition( PlayerCondition::InCombat );
     Network::Util::Packet::sendActorControl( *this, getId(), SetBattle, 0 );
+  }
 }
 
 bool Player::isLogin() const
@@ -1179,7 +1183,7 @@ void Player::setTitle( uint16_t titleId )
   uint8_t value;
   Util::valueToFlagByteIndexValue( titleId, value, index );
 
-  if( ( m_titleList[ index ] & value ) == 0 )   // Player doesn't have title - bail
+  if( ( m_titleList[ index ] & value ) == 0 && titleId != 0 )   // Player doesn't have title and is not "no title" - bail
     return;
 
   m_activeTitle = titleId;
@@ -1285,33 +1289,8 @@ void Player::autoAttack( CharaPtr pTarget )
   auto& RNGMgr = Common::Service< World::Manager::RNGMgr >::ref();
   auto variation = static_cast< uint32_t >( RNGMgr.getRandGenerator< float >( 0, 3 ).next() );
 
-  actionMgr.handleTargetedAction( *this, 7, exdData.getRow< Excel::Action >( 7 ), pTarget->getId(), 0 );
+  actionMgr.handleTargetedAction( *this, 7, pTarget->getId(), 0 );
 
-/*  auto damage = Math::CalcStats::calcAutoAttackDamage( *this );
-
-  auto effectPacket = std::make_shared< EffectPacket1 >( getId(), pTarget->getId(), 7 );
-
-  Common::CalcResultParam entry{};
-
-  entry.Value = static_cast< int16_t >( damage.first );
-  entry.Type = Common::ActionEffectType::CALC_RESULT_TYPE_DAMAGE_HP;
-  entry.Arg0 = 2;
-  entry.Arg1 = 7;
-
-  if( getClass() == ClassJob::Machinist || getClass() == ClassJob::Bard || getClass() == ClassJob::Archer )
-    effectPacket->setActionId( 8 );
-
-  auto resultId = pZone->getNextActionResultId();
-  effectPacket->setResultId( resultId );
-  effectPacket->setRotation( Util::floatToUInt16Rot( getRot() ) );
-  effectPacket->addTargetEffect( entry );
-
-  server().queueForPlayers( getInRangePlayerIds( true ), effectPacket );
-
-  pTarget->takeDamage( static_cast< uint32_t >( damage.first ) );
-
-  auto& taskMgr = Common::Service< TaskMgr >::ref();*/
-  //taskMgr.queueTask( Sapphire::World::makeActionIntegrityTask( resultId, pTarget, 500 ) );
 }
 
 

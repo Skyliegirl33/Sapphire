@@ -55,6 +55,8 @@ namespace Sapphire::World::Action
 
     uint64_t getCastTimeRest() const;
 
+    std::shared_ptr< Excel::ExcelStruct< Excel::Action > > getActionData() const;
+
     /*!
      * @brief Checks if a chara has enough resources available to cast the action (tp/mp/etc)
      * @return true if they have the required resources
@@ -120,9 +122,9 @@ namespace Sapphire::World::Action
      */
     void addDefaultActorFilters();
 
-    std::pair< uint32_t, Common::ActionHitSeverityType > calcDamage( uint32_t potency );
+    std::pair< uint32_t, Common::CalcResultType > calcDamage( uint32_t potency );
 
-    std::pair< uint32_t, Common::ActionHitSeverityType > calcHealing( uint32_t potency );
+    std::pair< uint32_t, Common::CalcResultType > calcHealing( uint32_t potency );
 
 
     std::vector< Entity::CharaPtr >& getHitCharas();

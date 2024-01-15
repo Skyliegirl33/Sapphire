@@ -11,14 +11,14 @@ namespace Sapphire::World::Action
     ActionResultBuilder( Entity::CharaPtr source, uint32_t actionId, uint32_t resultId, uint16_t requestId );
 
     void heal( Entity::CharaPtr& effectTarget, Entity::CharaPtr& healingTarget, uint32_t amount,
-               Common::ActionHitSeverityType severity = Common::ActionHitSeverityType::NormalHeal,
+               Common::CalcResultType hitType = Common::CalcResultType::TypeRecoverMp,
                Common::ActionResultFlag flag = Common::ActionResultFlag::None );
 
     void restoreMP( Entity::CharaPtr& effectTarget, Entity::CharaPtr& restoringTarget, uint32_t amount,
                     Common::ActionResultFlag flag = Common::ActionResultFlag::None );
 
     void damage( Entity::CharaPtr& effectTarget, Entity::CharaPtr& damagingTarget, uint32_t amount,
-                 Common::ActionHitSeverityType severity = Common::ActionHitSeverityType::NormalDamage,
+                 Common::CalcResultType hitType = Common::CalcResultType::TypeDamageHp,
                  Common::ActionResultFlag flag = Common::ActionResultFlag::None );
 
     void startCombo( Entity::CharaPtr& target, uint16_t actionId );
@@ -26,6 +26,7 @@ namespace Sapphire::World::Action
     void comboSucceed( Entity::CharaPtr& target );
 
     void applyStatusEffect( Entity::CharaPtr& target, uint16_t statusId, uint32_t duration, uint8_t param, bool shouldOverride );
+    void applyStatusEffectSelf( uint16_t statusId, uint32_t duration, uint8_t param, bool shouldOverride );
 
     void mount( Entity::CharaPtr& target, uint16_t mountId );
 

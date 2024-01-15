@@ -49,7 +49,11 @@ void ActionIntegrityTask::execute()
   int statusIdx = 0;
   for( auto& actionResult : m_results )
   {
-    if( actionResult->getCalcResultParam().Type == Common::CALC_RESULT_TYPE_SET_STATUS )
+    if( actionResult && actionResult->getTarget() )
+      actionResult->execute();
+
+    if( ( actionResult->getCalcResultParam().Type == Common::TypeSetStatus ) ||
+        ( actionResult->getCalcResultParam().Type == Common::TypeSetStatusMe ) )
     {
       auto& status = data.Status[ statusIdx++ ];
       auto pEffect = actionResult->getStatusEffect();
@@ -59,9 +63,6 @@ void ActionIntegrityTask::execute()
       status.Slot = static_cast< uint8_t >( pEffect->getSlot() );
       status.SystemParam = static_cast< int16_t >( pEffect->getParam() );
     }
-
-    if( actionResult && actionResult->getTarget() )
-      actionResult->execute();
   }
 
   data.Hp = m_pTarget->getHp();

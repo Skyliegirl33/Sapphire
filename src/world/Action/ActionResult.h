@@ -12,19 +12,18 @@ namespace Sapphire::World::Action
   class ActionResult
   {
   public:
-    explicit ActionResult( Entity::CharaPtr target, uint64_t delayMs );
+    explicit ActionResult( Entity::CharaPtr target );
 
-    void damage( uint32_t amount, Common::ActionHitSeverityType severity, Common::ActionResultFlag flag = Common::ActionResultFlag::None );
-    void heal( uint32_t amount, Common::ActionHitSeverityType severity, Common::ActionResultFlag flag = Common::ActionResultFlag::None );
+    void damage( uint32_t amount, Common::CalcResultType hitType, uint8_t hitEffect, Common::ActionResultFlag flag = Common::ActionResultFlag::None );
+    void heal( uint32_t amount, Common::CalcResultType hitType, uint8_t hitEffect, Common::ActionResultFlag flag = Common::ActionResultFlag::None );
     void restoreMP( uint32_t amount, Common::ActionResultFlag flag = Common::ActionResultFlag::None );
     void startCombo( uint16_t actionId );
     void comboSucceed();
     void applyStatusEffect( uint32_t id, int32_t duration, Entity::Chara& source, uint8_t param, bool shouldOverride );
+    void applyStatusEffectSelf( uint32_t id, int32_t duration, uint8_t param, bool shouldOverride );
     void mount( uint16_t mountId );
 
     Entity::CharaPtr getTarget() const;
-
-    uint64_t getDelay();
 
     const Common::CalcResultParam& getCalcResultParam() const;
     const Sapphire::StatusEffect::StatusEffectPtr getStatusEffect() const;
@@ -32,8 +31,6 @@ namespace Sapphire::World::Action
     void execute();
 
   private:
-    uint64_t m_delayMs;
-
     Entity::CharaPtr m_target;
 
     Common::CalcResultParam m_result;

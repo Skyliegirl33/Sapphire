@@ -365,7 +365,7 @@ Change the current target and propagate to in range players
 void Chara::changeTarget( uint64_t targetId )
 {
   setTargetId( targetId );
-  Network::Util::Packet::sendActorControlTarget( getInRangePlayerIds(), getId(), ToggleWeapon, SetTarget, 0, 0, 0, 0, targetId );
+  Network::Util::Packet::sendActorControlTarget( getInRangePlayerIds(), getId(), SetTarget, 0, 0, 0, 0, targetId );
 }
 
 /*!
@@ -475,8 +475,8 @@ void Chara::autoAttack( CharaPtr pTarget )
 
     Common::CalcResultParam effectEntry{};
     effectEntry.Value = static_cast< int16_t >( damage );
-    effectEntry.Type = ActionEffectType::CALC_RESULT_TYPE_DAMAGE_HP;
-    effectEntry.Arg0 = static_cast< uint8_t >( ActionHitSeverityType::NormalDamage );
+    effectEntry.Type = CalcResultType::TypeDamageHp;
+    effectEntry.Arg0 = 1;
     effectEntry.Arg2 = 0x71;
     effectPacket->addTargetEffect( effectEntry );
 
@@ -503,22 +503,18 @@ void Chara::addStatusEffect( StatusEffect::StatusEffectPtr pEffect )
 }
 
 /*! \param StatusEffectPtr to be applied to the actor */
-void Chara::addStatusEffectById( uint32_t id, int32_t duration, Entity::Chara& source, uint16_t param )
+void Chara::addStatusEffectById( StatusEffect::StatusEffectPtr pStatus )
 {
-  auto effect = StatusEffect::make_StatusEffect( id, source.getAsChara(), getAsChara(), duration, 3000 );
-  effect->setParam( param );
-  addStatusEffect( effect );
+  addStatusEffect( pStatus );
 }
 
 /*! \param StatusEffectPtr to be applied to the actor */
-void Chara::addStatusEffectByIdIfNotExist( uint32_t id, int32_t duration, Entity::Chara& source, uint16_t param )
+void Chara::addStatusEffectByIdIfNotExist( StatusEffect::StatusEffectPtr pStatus )
 {
-  if( hasStatusEffect( id ) )
+  if( hasStatusEffect( pStatus->getId() ) )
     return;
 
-  auto effect = StatusEffect::make_StatusEffect( id, source.getAsChara(), getAsChara(), duration, 3000 );
-  effect->setParam( param );
-  addStatusEffect( effect );
+  addStatusEffect( pStatus );
 
 }
 
@@ -767,14 +763,14 @@ void Chara::onTick()
   {
     takeDamage( thisTickDmg );
     Network::Util::Packet::sendActorControl( getInRangePlayerIds( isPlayer() ), getId(), HPFloatingText, 0,
-                                             ActionEffectType::CALC_RESULT_TYPE_DAMAGE_HP, thisTickDmg );
+                                             CalcResultType::TypeDamageHp, thisTickDmg );
   }
 
   if( thisTickHeal != 0 )
   {
     heal( thisTickHeal );
     Network::Util::Packet::sendActorControl( getInRangePlayerIds( isPlayer() ), getId(), HPFloatingText, 0,
-                                             ActionEffectType::CALC_RESULT_TYPE_RECOVER_HP, thisTickHeal );
+                                             CalcResultType::TypeRecoverMp, thisTickHeal );
   }
 
   if( isPlayer() )

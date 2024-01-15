@@ -71,6 +71,11 @@ uint32_t Action::Action::getResultId() const
   return m_resultId;
 }
 
+std::shared_ptr< Excel::ExcelStruct< Excel::Action > > Action::Action::getActionData() const
+{
+  return m_actionData;
+}
+
 bool Action::Action::init()
 {
   if( !m_actionData )
@@ -449,7 +454,7 @@ void Action::Action::execute()
   }
 }
 
-std::pair< uint32_t, Common::ActionHitSeverityType > Action::Action::calcDamage( uint32_t potency )
+std::pair< uint32_t, Common::CalcResultType > Action::Action::calcDamage( uint32_t potency )
 {
   // todo: what do for npcs?
   auto wepDmg = 1.f;
@@ -473,7 +478,7 @@ std::pair< uint32_t, Common::ActionHitSeverityType > Action::Action::calcDamage(
   return Math::CalcStats::calcActionDamage( *m_pSource, potency, wepDmg );
 }
 
-std::pair< uint32_t, Common::ActionHitSeverityType > Action::Action::calcHealing( uint32_t potency )
+std::pair< uint32_t, Common::CalcResultType > Action::Action::calcHealing( uint32_t potency )
 {
   auto wepDmg = 1.f;
 
