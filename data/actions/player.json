@@ -500,7 +500,18 @@
       45
     ],
     "statuses": {
-      "caster": [],
+      "caster": [
+        {
+          "id": 85,
+          "duration": 24000,
+          "modifiers": [
+            {
+              "modifier": "DamageDealtPercent",
+              "value": 20
+            }
+          ]
+        }
+      ],
       "target": []
     }
   },
@@ -618,7 +629,7 @@
   },
   "44": {
     "name": "Vengeance",
-    "potency": 50,
+    "potency": 0,
     "comboPotency": 0,
     "flankPotency": 0,
     "frontPotency": 0,
@@ -627,7 +638,18 @@
     "restorePercentage": 0,
     "nextCombo": [],
     "statuses": {
-      "caster": [],
+      "caster": [
+        {
+          "id": 89,
+          "duration": 20000,
+          "modifiers": [
+            {
+              "modifier": "ReflectPhysical",
+              "value": 50
+            }
+          ]
+        }
+      ],
       "target": []
     }
   },
@@ -687,7 +709,34 @@
     "restorePercentage": 0,
     "nextCombo": [],
     "statuses": {
-      "caster": [],
+      "caster": [
+        {
+          "id": 91,
+          "duration": 0,
+          "modifiers": [
+            {
+              "modifier": "HPPercent",
+              "value": 25
+            },
+            {
+              "modifier": "DamageDealtPercent",
+              "value": -25
+            },
+            {
+              "modifier": "HealingMagicRecoveryPercent",
+              "value": 20
+            },
+            {
+              "modifier": "AccuracyPercent",
+              "value": 5
+            },
+            {
+              "modifier": "EnmityPercent",
+              "value": 20
+            }
+          ]
+        }
+      ],
       "target": []
     }
   },
@@ -747,7 +796,12 @@
     "restorePercentage": 0,
     "nextCombo": [],
     "statuses": {
-      "caster": [],
+      "caster": [
+        {
+          "id": 97,
+          "duration": 30000
+        }
+      ],
       "target": []
     }
   },
@@ -1220,7 +1274,19 @@
     "restorePercentage": 0,
     "nextCombo": [],
     "statuses": {
-      "caster": [],
+      "caster": [
+        {
+          "id": 116,
+          "duration": 10000,
+          "flag": 4096,
+          "modifiers": [
+            {
+              "modifier": "CriticalHitPercent",
+              "value": 100
+            }
+          ]
+        }
+      ],
       "target": []
     }
   },

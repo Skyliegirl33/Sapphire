@@ -77,6 +77,18 @@ void ActionResult::applyStatusEffect( uint32_t id, int32_t duration, Entity::Cha
   m_pStatus->setParam( param );
 }
 
+void ActionResult::applyStatusEffect( uint32_t id, int32_t duration, Entity::Chara& source, uint8_t param,
+                                      const std::vector< StatusModifier >& modifiers, uint32_t flag, bool shouldOverride )
+{
+  m_result.Value = static_cast< int16_t >( id );
+  m_result.Arg2 = param;
+  m_result.Type = CalcResultType::TypeSetStatus;
+
+  m_bOverrideStatus = shouldOverride;
+  m_pStatus = Sapphire::StatusEffect::make_StatusEffect( id, source.getAsChara(), m_target, duration, modifiers, flag, 3000 );
+  m_pStatus->setParam( param );
+}
+
 void ActionResult::applyStatusEffectSelf( uint32_t id, int32_t duration, uint8_t param, bool shouldOverride )
 {
   m_result.Value = static_cast< int16_t >( id );
@@ -86,6 +98,19 @@ void ActionResult::applyStatusEffectSelf( uint32_t id, int32_t duration, uint8_t
 
   m_bOverrideStatus = shouldOverride;
   m_pStatus = Sapphire::StatusEffect::make_StatusEffect( id, m_target, m_target, duration, 3000 );
+  m_pStatus->setParam( param );
+}
+
+void ActionResult::applyStatusEffectSelf( uint32_t id, int32_t duration, uint8_t param, const std::vector< World::Action::StatusModifier >& modifiers,
+                                          uint32_t flag, bool shouldOverride )
+{
+  m_result.Value = static_cast< int16_t >( id );
+  m_result.Arg2 = param;
+  m_result.Type = CalcResultType::TypeSetStatusMe;
+  m_result.Flag = static_cast< uint8_t >( Common::ActionResultFlag::EffectOnSource );
+
+  m_bOverrideStatus = shouldOverride;
+  m_pStatus = Sapphire::StatusEffect::make_StatusEffect( id, m_target, m_target, duration, modifiers, flag, 3000 );
   m_pStatus->setParam( param );
 }
 

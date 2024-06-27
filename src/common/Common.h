@@ -37,6 +37,7 @@ namespace Sapphire::Common
   const uint16_t ARRSIZE_UNLOCKS = 64u;
   const uint16_t ARRSIZE_ORCHESTRION = 40u;
   const uint16_t ARRSIZE_MONSTERNOTE = 12u;
+  const uint16_t ARRSIZE_BORROWACTION = 10u;
 
   const uint8_t TOWN_COUNT = 6;
 
@@ -911,7 +912,32 @@ namespace Sapphire::Common
     CriticalHitPowerPercent = 1020,
     CriticalHitResiliencePercent = 1021,
     CriticalHitPercent = 1022,
-    EnmityPercent = 1023
+    EnmityPercent = 1023,
+    DamageDealtPercent = 1024,
+    DamageTakenPercent = 1025,
+    HealingMagicRecoveryPercent = 1026,
+    SlashingResistancePercent = 1027,
+    PiercingResistancePercent = 1028,
+    BluntResistancePercent = 1029,
+    ProjectileResistancePercent = 1030,
+    ParryPercent = 1031
+  };
+
+  enum class StatusEffectFlag : uint32_t
+  {
+    BuffCategory = 1,
+    DebuffCategory = 2,
+    Permanent = 4,
+    IsGaze = 8,
+    Transfiguration = 16,
+    CanDispel = 32,
+    LockActions = 64,
+    LockControl = 128,
+    LockMovement = 256,
+    Invisibilty = 512,
+    CanStatusOff = 1024,
+    FcBuff = 2048,
+    RemoveOnSuccessfulHit = 4096
   };
 
   enum struct ActionAspect : uint8_t
@@ -932,6 +958,7 @@ namespace Sapphire::Common
     MagicPoints = 3,
     TacticsPoints = 5,
     TacticsPoints1 = 6,
+    StatusEffect = 10,
     Sprint = 18,
 //    WARGauge = 22,
 //    DRKGauge = 25,
@@ -1839,8 +1866,8 @@ namespace Sapphire::Common
   {
     SingleTarget = 1,
     CircularAOE = 2,
-    Type3 = 3, // another single target? no idea how to call it
-    RectangularAOE = 4,
+    RectangularAOE = 3,
+    ConeAOE = 4,
     CircularAoEPlaced = 7
   };
 

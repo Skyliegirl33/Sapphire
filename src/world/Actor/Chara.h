@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Common.h>
+#include "Action/ActionLut.h"
 
 #include "Forwards.h"
 #include "GameObject.h"
@@ -8,6 +9,7 @@
 #include <map>
 #include <queue>
 #include <array>
+#include <numeric>
 
 namespace Sapphire::Entity
 {
@@ -106,9 +108,15 @@ namespace Sapphire::Entity
     /// Status effect functions
     void addStatusEffect( StatusEffect::StatusEffectPtr pEffect );
 
-    std::map< uint8_t, StatusEffect::StatusEffectPtr >::iterator removeStatusEffect( uint8_t effectSlotId );
+    std::map< uint8_t, StatusEffect::StatusEffectPtr >::iterator removeStatusEffect( uint8_t effectSlotId, bool sendOrder = true );
+
+    void replaceSingleStatusEffectById( uint32_t id );
 
     void removeSingleStatusEffectById( uint32_t id );
+
+    void removeStatusEffectById( std::vector< uint32_t > ids );
+
+    void removeStatusEffectByFlag( Common::StatusEffectFlag flag );
 
     void updateStatusEffects();
 
@@ -123,6 +131,8 @@ namespace Sapphire::Entity
     void setPose( uint8_t pose );
 
     std::map< uint8_t, Sapphire::StatusEffect::StatusEffectPtr > getStatusEffectMap() const;
+
+    Sapphire::StatusEffect::StatusEffectPtr getStatusEffectById( uint32_t id ) const;
 
     void sendStatusEffectUpdate();
 
@@ -158,6 +168,8 @@ namespace Sapphire::Entity
     uint32_t getBonusStat( Common::BaseParam baseParam ) const;
 
     void setStatValue( Common::BaseParam baseParam, uint32_t value );
+
+    float getModifier( Common::ParamModifier paramModifier ) const;
 
     uint32_t getHp() const;
 
@@ -236,6 +248,10 @@ namespace Sapphire::Entity
     virtual bool checkAction();
 
     virtual void update( uint64_t tickCount );
+
+    Common::FFXIVARR_POSITION3 getForwardVector() const;
+
+    bool isFacingTarget( const Chara& other, float threshold = 0.95f );
 
     World::Action::ActionPtr getCurrentAction() const;
 

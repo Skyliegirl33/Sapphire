@@ -5,7 +5,6 @@
 #include <Network/CommonActorControl.h>
 #include <Service.h>
 
-
 #include "Forwards.h"
 
 #include "Territory/Territory.h"
@@ -25,6 +24,7 @@
 #include "Player.h"
 #include "Manager/TerritoryMgr.h"
 #include "Manager/MgrUtil.h"
+#include "Manager/PlayerMgr.h"
 #include "Common.h"
 
 using namespace Sapphire;
@@ -497,9 +497,9 @@ void Chara::addStatusEffect( StatusEffect::StatusEffectPtr pEffect )
   if( nextSlot == -1 )
     return;
 
-  pEffect->applyStatus();
   pEffect->setSlot( nextSlot );
   m_statusEffectMap[ nextSlot ] = pEffect;
+  pEffect->applyStatus();
 }
 
 /*! \param StatusEffectPtr to be applied to the actor */
@@ -515,7 +515,6 @@ void Chara::addStatusEffectByIdIfNotExist( StatusEffect::StatusEffectPtr pStatus
     return;
 
   addStatusEffect( pStatus );
-
 }
 
 int8_t Chara::getStatusEffectFreeSlot()
@@ -536,6 +535,18 @@ void Chara::statusEffectFreeSlot( uint8_t slotId )
   m_statusEffectFreeSlotQueue.push( slotId );
 }
 
+void Chara::replaceSingleStatusEffectById( uint32_t id )
+{
+  for( const auto& effectIt : m_statusEffectMap )
+  {
+    if( effectIt.second->getId() == id )
+    {
+      removeStatusEffect( effectIt.first, false );
+      break;
+    }
+  }
+}
+
 void Chara::removeSingleStatusEffectById( uint32_t id )
 {
   for( const auto& effectIt : m_statusEffectMap )
@@ -548,7 +559,36 @@ void Chara::removeSingleStatusEffectById( uint32_t id )
   }
 }
 
-std::map< uint8_t, StatusEffect::StatusEffectPtr >::iterator Chara::removeStatusEffect( uint8_t effectSlotId )
+void Chara::removeStatusEffectById( std::vector< uint32_t > ids )
+{
+  for( auto effectIt = m_statusEffectMap.begin(); effectIt != m_statusEffectMap.end(); )
+  {
+    auto foundStatus = std::find( ids.begin(), ids.end(), effectIt->second->getId() );
+
+    if( foundStatus != ids.end() )
+    {
+      effectIt = removeStatusEffect( effectIt->first );
+      ids.erase( foundStatus );
+    }
+    else
+    {
+      ++effectIt;
+    }
+  }
+}
+
+void Chara::removeStatusEffectByFlag( Common::StatusEffectFlag flag )
+{
+  for( auto effectIt = m_statusEffectMap.begin(); effectIt != m_statusEffectMap.end(); )
+  {
+    if( effectIt->second->getFlag() & static_cast< uint32_t >( flag ) )
+      effectIt = removeStatusEffect( effectIt->first );
+    else
+      ++effectIt;
+  }
+}
+
+std::map< uint8_t, Sapphire::StatusEffect::StatusEffectPtr >::iterator Chara::removeStatusEffect( uint8_t effectSlotId, bool sendOrder )
 {
   auto pEffectIt = m_statusEffectMap.find( effectSlotId );
   if( pEffectIt == m_statusEffectMap.end() )
@@ -559,7 +599,8 @@ std::map< uint8_t, StatusEffect::StatusEffectPtr >::iterator Chara::removeStatus
   auto pEffect = pEffectIt->second;
   pEffect->removeStatus();
 
-  Network::Util::Packet::sendActorControl( getInRangePlayerIds( isPlayer() ), getId(), StatusEffectLose, pEffect->getId() );
+  if( sendOrder )
+    Network::Util::Packet::sendActorControl( getInRangePlayerIds( isPlayer() ), getId(), StatusEffectLose, pEffect->getId() );
 
   auto it = m_statusEffectMap.erase( pEffectIt );
   Network::Util::Packet::sendHudParam( *this );
@@ -569,6 +610,17 @@ std::map< uint8_t, StatusEffect::StatusEffectPtr >::iterator Chara::removeStatus
 std::map< uint8_t, StatusEffect::StatusEffectPtr > Chara::getStatusEffectMap() const
 {
   return m_statusEffectMap;
+}
+
+Sapphire::StatusEffect::StatusEffectPtr Chara::getStatusEffectById( uint32_t id ) const
+{
+  for( const auto& effectIt : m_statusEffectMap )
+  {
+    if( effectIt.second->getId() == id )
+      return effectIt.second;
+  }
+
+  return nullptr;
 }
 
 const uint8_t* Chara::getLookArray() const
@@ -594,7 +646,6 @@ void Chara::setPose( uint8_t pose )
 void Chara::sendStatusEffectUpdate()
 {
   uint64_t currentTimeMs = Common::Util::getTimeMs();
-
 
   auto statusEffectList = makeZonePacket< FFXIVIpcStatus >( getId() );
   uint8_t slot = 0;
@@ -640,7 +691,13 @@ void Chara::updateStatusEffects()
 
 bool Chara::hasStatusEffect( uint32_t id )
 {
-  return m_statusEffectMap.find( id ) != m_statusEffectMap.end();
+  for( const auto& [ key, val ] : m_statusEffectMap )
+  {
+    if( val->getId() == id )
+      return true;
+  }
+
+  return false;
 }
 
 int64_t Chara::getLastUpdateTime() const
@@ -735,6 +792,47 @@ void Chara::setStatValue( Common::BaseParam baseParam, uint32_t value )
   m_baseStats[ index ] = value;
 }
 
+float Chara::getModifier( Common::ParamModifier paramModifier ) const
+{
+  auto result = paramModifier >= Common::ParamModifier::StrengthPercent ? 1.0f : 0;
+
+  for( const auto& [ key, status ] : m_statusEffectMap )
+  {
+    for( const auto& [ mod, val ] : status->getModifiers() )
+    {
+      if( mod != paramModifier )
+        continue;
+
+      if( paramModifier >= Common::ParamModifier::StrengthPercent )
+        result *= 1.0f + ( val / 100.0f );
+      else
+        result += val;
+    }
+  }
+
+  return result;
+}
+
+// Compute forward direction based on rotation angle (assuming rotation around Z axis)
+FFXIVARR_POSITION3 Chara::getForwardVector() const {
+  return Common::Util::normalize( FFXIVARR_POSITION3{ std::sin( getRot() ), 0, std::cos( getRot() ) } );
+}
+
+// Function to check if actor is facing target
+bool Chara::isFacingTarget( const Chara& other, float threshold )
+{
+  auto toActor = Common::Util::normalize( Common::Util::projectY( other.getPos() - getPos() ) );
+
+  auto forward = getForwardVector();
+  
+  float dot = Common::Util::dot( forward, toActor );
+  
+  // The threshold is used to determine how closely the actors need to be facing each other
+  // 1.0 means they need to be perfectly facing each other
+  // Lower values allow for some deviation
+  return dot >= threshold;
+}
+
 void Chara::onTick()
 {
   uint32_t thisTickDmg = 0;
@@ -745,13 +843,13 @@ void Chara::onTick()
     auto thisEffect = effectIt.second->getTickEffect();
     switch( thisEffect.first )
     {
-      case 1:
+      case Common::ParamModifier::TickDamage:
       {
         thisTickDmg += thisEffect.second;
         break;
       }
 
-      case 2:
+      case Common::ParamModifier::TickHeal:
       {
         thisTickHeal += thisEffect.second;
         break;
@@ -759,11 +857,15 @@ void Chara::onTick()
     }
   }
 
+  // TODO: don't really like how this is handled
+  // TODO: calculate actual damage from potency
   if( thisTickDmg != 0 )
   {
     takeDamage( thisTickDmg );
     Network::Util::Packet::sendActorControl( getInRangePlayerIds( isPlayer() ), getId(), HPFloatingText, 0,
                                              CalcResultType::TypeDamageHp, thisTickDmg );
+
+    Network::Util::Packet::sendHudParam( *this );
   }
 
   if( thisTickHeal != 0 )
@@ -771,6 +873,8 @@ void Chara::onTick()
     heal( thisTickHeal );
     Network::Util::Packet::sendActorControl( getInRangePlayerIds( isPlayer() ), getId(), HPFloatingText, 0,
                                              CalcResultType::TypeRecoverMp, thisTickHeal );
+
+    Network::Util::Packet::sendHudParam( *this );
   }
 
   if( isPlayer() )
