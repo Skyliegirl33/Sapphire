@@ -138,6 +138,10 @@ bool ActionLutData::cacheActions()
       {
         auto id = std::stoi( i.key() );
         auto action = i.value().get< ActionEntry >();
+
+        if( ActionLut::m_actionLut.count( id ) > 0 )
+          throw std::runtime_error( "Action with ID " + i.key() + " cannot be defined more than once (defined again in " + p.path().string() + ")" );
+
         ActionLut::m_actionLut.try_emplace( id, action );
       }
 
