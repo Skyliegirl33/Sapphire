@@ -376,19 +376,32 @@ bool MapMgr::isQuestVisible( Entity::Player& player, uint32_t questId, Excel::Qu
 {
   auto& exdData = Common::Service< Data::ExdData >::ref();
 
+  if( questId == 65583 )
+  {
+    Logger::debug("spear of the fearless");
+  }
+
   if( ( player.isQuestCompleted( questId ) && ( !quest.Repeatable && questId != 67114 ) ) || player.hasQuest( questId ) )
     return false;
 
   if( quest.ClassJobUnlock && quest.ClassJob != 1 )
   {
-    if( player.isClassJobUnlocked( static_cast< ClassJob >( quest.ClassJobUnlock ) ) )
-      return false;
-
+    uint8_t classJobIndex = exdData.getRow< Excel::ClassJob >( static_cast< uint8_t >( player.getClass() ) )->data().WorkIndex;
     if( quest.ClassJobUnlockFlag == 3 )
-      if( static_cast< uint8_t >( player.getClass() ) != quest.ClassJobUnlock )
+      if( classJobIndex != quest.ClassJobUnlock )
         return false;
+      // else if( ( static_cast< uint8_t >( player.getFirstClass() ) == quest.ClassJobUnlock && player.hasReward( Common::UnlockEntry::HuntingLog ) ) ) // should always be first Way of the X quests?
+      // {
+      //   Logger::debug( "First Class Quest is: {}", questId );
+      //   return false;
+      // }
+      // else if( static_cast< uint8_t >( player.getFirstClass() ) != quest.ClassJobUnlock && player.isClassJobUnlocked( static_cast< Common::ClassJob >( quest.ClassJobUnlock ) ) )
+      // {
+      //   Logger::debug( "Not First Class Quest is: {}", questId );
+      //   return false;
+      // }
     else if( quest.ClassJobUnlockFlag == 4 )
-      if ( static_cast< uint8_t >( player.getClass() ) == quest.ClassJobUnlock )
+      if( static_cast< uint8_t >( player.getClass() ) == quest.ClassJobUnlock )
         return false;
     else
       return false;
@@ -435,7 +448,7 @@ bool MapMgr::isQuestVisible( Entity::Player& player, uint32_t questId, Excel::Qu
   }
   else if( quest.PrevQuestOperator == 2 )
   {
-    for( auto i = 0; i < 3; ++i )
+    for( auto i = 0; i <= 3; ++i )
     {
       if( i == 3 )
         return false;
@@ -450,7 +463,7 @@ bool MapMgr::isQuestVisible( Entity::Player& player, uint32_t questId, Excel::Qu
 
   if( quest.ExcludeQuestOperator == 1 )
   {
-    for( auto i = 0; i < 2; ++i )
+    for( auto i = 0; i <= 2; ++i )
     {
       if( i == 2 )
         return false;
