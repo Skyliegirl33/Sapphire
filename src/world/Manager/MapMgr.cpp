@@ -376,11 +376,6 @@ bool MapMgr::isQuestVisible( Entity::Player& player, uint32_t questId, Excel::Qu
 {
   auto& exdData = Common::Service< Data::ExdData >::ref();
 
-  if( questId == 65583 )
-  {
-    Logger::debug("spear of the fearless");
-  }
-
   if( ( player.isQuestCompleted( questId ) && ( !quest.Repeatable && questId != 67114 ) ) || player.hasQuest( questId ) )
     return false;
 
@@ -390,16 +385,6 @@ bool MapMgr::isQuestVisible( Entity::Player& player, uint32_t questId, Excel::Qu
     if( quest.ClassJobUnlockFlag == 3 )
       if( classJobIndex != quest.ClassJobUnlock )
         return false;
-      // else if( ( static_cast< uint8_t >( player.getFirstClass() ) == quest.ClassJobUnlock && player.hasReward( Common::UnlockEntry::HuntingLog ) ) ) // should always be first Way of the X quests?
-      // {
-      //   Logger::debug( "First Class Quest is: {}", questId );
-      //   return false;
-      // }
-      // else if( static_cast< uint8_t >( player.getFirstClass() ) != quest.ClassJobUnlock && player.isClassJobUnlocked( static_cast< Common::ClassJob >( quest.ClassJobUnlock ) ) )
-      // {
-      //   Logger::debug( "Not First Class Quest is: {}", questId );
-      //   return false;
-      // }
     else if( quest.ClassJobUnlockFlag == 4 )
       if( static_cast< uint8_t >( player.getClass() ) == quest.ClassJobUnlock )
         return false;
